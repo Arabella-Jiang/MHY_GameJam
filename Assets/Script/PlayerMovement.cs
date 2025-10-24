@@ -48,7 +48,7 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKeyDown(jumpKey) && isGrounded)
         {
             playerVelocity.y = Mathf.Sqrt(jumpHeight * -2.0f * gravityValue);
-            Debug.Log("Jump! Velocity: " + playerVelocity.y);
+            //Debug.Log("Jump! Velocity: " + playerVelocity.y);
         }
 
         // 重力
@@ -58,6 +58,6 @@ public class PlayerMovement : MonoBehaviour
 
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        Debug.Log($"Collided with: {hit.gameObject.name}, Normal: {hit.normal}");
+        //Debug.Log($"Collided with: {hit.gameObject.name}, Normal: {hit.normal}");
     }
 }
