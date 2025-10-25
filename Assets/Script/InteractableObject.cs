@@ -1,50 +1,99 @@
 using UnityEngine;
-public class InteractableObject : Interactable
+using UnityEngine.Events;
+using System.Collections.Generic;
+//using Unity.VisualScripting;
+
+public class InteractableObject : MonoBehaviour
 {
-    public ObjectProperty inherentProperty; // 物体自身特性
-    public ObjectProperty currentProperty;  // 当前被赋予的特性
-    
-    public override void OnInteract(Player player)
+
+    [Header("当前特性")]
+    public List<ObjectProperty> currentProperties = new List<ObjectProperty>();
+
+    [Header("可理解的特性列表")]
+    public List<ObjectProperty> understandableProperties = new List<ObjectProperty>();
+
+    [Header("特性组合效果")]
+    public PropertyCombination[] propertyCombinations;
+
+    [System.Serializable]
+    public class PropertyCombination
     {
-        Debug.Log($"与 {gameObject.name} 交互");
+        public List<ObjectProperty> requiredProperties;
+        public UnityEvent onCombinationTriggered;         // 触发的效果
     }
-    
-    public virtual bool ReceiveProperty(ObjectProperty property)
+
+    //private bool isFocus = false;
+
+    void Start()
     {
-        currentProperty = property;
-        
-        switch(property)
+        /* UI
+        objectRenderer = GetComponent<Renderer>();
+        UpdateVisualAppearance();
+        */
+    }
+
+    //获取当前可理解的特性列表
+    public List<ObjectProperty> GetUnderstandableProperties()
+    {
+        return new List<ObjectProperty>(understandableProperties);
+    }
+
+    public bool ReceiveProperty(ObjectProperty newProperty)
+    {
+        Debug.Log($"{name} 尝试接收特性: {newProperty}");
+
+        // 添加新特性到物体
+        if (!currentProperties.Contains(newProperty))
         {
-            case ObjectProperty.Hard:
-                return OnReceiveHardProperty();
-                
-            case ObjectProperty.Flammable:
-                return OnReceiveFlammableProperty();
-                
-            default:
-                return false;
+            currentProperties.Add(newProperty);
+            Debug.Log($"{name} 现在拥有特性: {string.Join(", ", currentProperties)}");
+
+            // 检查特性组合效果
+            CheckPropertyCombinations();
+            return true;
+        }
+        else
+        {
+            Debug.Log($"{name} 已经拥有特性 {newProperty}");
+            return false;
         }
     }
-    
-    protected virtual bool OnReceiveHardProperty()
+
+    // 检查特性组合触发效果
+    private void CheckPropertyCombinations()
     {
-        Debug.Log($"{name} 获得了坚硬特性");
+        foreach (var combination in propertyCombinations)
+        {
+            if (HasAllProperties(combination.requiredProperties))
+            {
+                combination.onCombinationTriggered?.Invoke();
+                Debug.Log($"触发特性组合效果: {string.Join(" + ", combination.requiredProperties)}");
+            }
+        }
+    }
+
+    // 检查是否拥有所有指定特性
+    private bool HasAllProperties(List<ObjectProperty> requiredProps)
+    {
+        foreach (var prop in requiredProps)
+        {
+            if (!currentProperties.Contains(prop))
+                return false;
+        }
         return true;
     }
-    
-    protected virtual bool OnReceiveFlammableProperty()
+
+    //TODO
+    public void OnFocus()
     {
-        Debug.Log($"{name} 获得了可燃特性");
-        return true;
+        // 简单的高亮效果
+        // 比如：改变材质颜色、显示轮廓、显示UI提示等
+        Debug.Log($"{name} 被聚焦");
     }
-    
-    public override void OnFocus()
+
+    public void OnLoseFocus()
     {
-        // 高亮效果
-    }
-    
-    public override void OnLoseFocus()
-    {
-        // 取消高亮
+        // 恢复原状
+        Debug.Log($"{name} 失去聚焦");
     }
 }
