@@ -275,6 +275,23 @@ MonoBehaviour:
   inherentProperty: 1
   currentProperty: 1
   canBePickedUp: 1
+  rb: {fileID: 0}
+  col: {fileID: 0}
+--- !u!114 &528996107
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 528996100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43a473df0935e42f68a6f167f92a440e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentProperties: 01000000
+  understandableProperties: 01000000
+  propertyCombinations: []
 --- !u!1 &696161353
 GameObject:
   m_ObjectHideFlags: 0
@@ -508,7 +525,6 @@ GameObject:
   - component: {fileID: 1205426865}
   - component: {fileID: 1205426868}
   - component: {fileID: 1205426867}
-  - component: {fileID: 1205426866}
   - component: {fileID: 1205426870}
   - component: {fileID: 1205426869}
   - component: {fileID: 1205426872}
@@ -537,29 +553,6 @@ Transform:
   - {fileID: 696161354}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &1205426866
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1205426864}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.91976
-  m_Height: 2.4104857
-  m_Direction: 1
-  m_Center: {x: -0.27728772, y: -0.0047843456, z: 0.14247227}
 --- !u!23 &1205426867
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -622,16 +615,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e40672d7899284dbfa1be639e06c7d7c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  controller: {fileID: 1205426870}
   mouseLook: {fileID: 1678899158}
   movement: {fileID: 1205426872}
   empowermentAbility: {fileID: 1205426871}
-  holdPosition: {fileID: 696161354}
-  interactDistance: 3
-  interactableLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  heldObject: {fileID: 0}
+  playerCamera: {fileID: 1678899157}
+  interactRange: 3
+  empowerHoldDuration: 2
+  currentInteractTarget: {fileID: 0}
+  currentSelectedSlot: -1
 --- !u!143 &1205426870
 CharacterController:
   m_ObjectHideFlags: 0
@@ -671,7 +662,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   propertySlots: 0000000000000000
-  slotIcons: []
 --- !u!114 &1205426872
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -836,6 +826,23 @@ MonoBehaviour:
   inherentProperty: 2
   currentProperty: 0
   canBePickedUp: 1
+  rb: {fileID: 0}
+  col: {fileID: 0}
+--- !u!114 &1768383355
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1768383348}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43a473df0935e42f68a6f167f92a440e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentProperties: 02000000
+  understandableProperties: 00000000
+  propertyCombinations: []
 --- !u!1001 &447509215776412222
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -922,6 +929,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7204310025884050038, guid: 7ab404306c3ac4397b4537704bc5ff26, type: 3}
       insertIndex: -1
       addedObject: {fileID: 528996105}
+    - targetCorrespondingSourceObject: {fileID: 7204310025884050038, guid: 7ab404306c3ac4397b4537704bc5ff26, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 528996107}
   m_SourcePrefab: {fileID: 100100000, guid: 7ab404306c3ac4397b4537704bc5ff26, type: 3}
 --- !u!1001 &1904120047954738544
 PrefabInstance:
@@ -961,7 +971,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8066178364351185871, guid: e6a1f78bfa1414d9aad2c411f986832e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 7.8
+      value: 2.92
       objectReference: {fileID: 0}
     - target: {fileID: 8066178364351185871, guid: e6a1f78bfa1414d9aad2c411f986832e, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1017,6 +1027,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8535231747799449352, guid: e6a1f78bfa1414d9aad2c411f986832e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1768383353}
+    - targetCorrespondingSourceObject: {fileID: 8535231747799449352, guid: e6a1f78bfa1414d9aad2c411f986832e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1768383355}
   m_SourcePrefab: {fileID: 100100000, guid: e6a1f78bfa1414d9aad2c411f986832e, type: 3}
 --- !u!1001 &6621661863336281442
 PrefabInstance:
@@ -1114,9 +1127,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 43a473df0935e42f68a6f167f92a440e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interactText: "\u4EA4\u4E92"
-  inherentProperty: 0
-  currentProperty: 0
+  currentProperties: 
+  understandableProperties: 
+  propertyCombinations: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

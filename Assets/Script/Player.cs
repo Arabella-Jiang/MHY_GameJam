@@ -1,179 +1,367 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
+using System.IO.Compression;
+//using UnityEngine.UIElements;
 
 public class Player : MonoBehaviour
 {
     [Header("组件引用")]
-    public CharacterController controller;
+    //public CharacterController controller;
     public MouseLook mouseLook;
     public PlayerMovement movement;
     public EmpowermentAbility empowermentAbility;
-    public Transform holdPosition; //TODO：商议手持物品位置或者直接放进背包？
+    public Camera playerCamera;
+    //public Transform holdPosition; //手持道具的位置
 
     [Header("交互设置")]
-    public float interactDistance = 3f;
-    public LayerMask interactableLayer;
+    public float interactRange = 3f;
+    //public LayerMask interactableLayer;
+    public float empowerHoldDuration = 2f; //长按E键 理解赋能的时间
 
     [Header("当前状态")]
-    public PickupableObject heldObject; //当前手持物品
-    private List<PickupableObject> nearbyPickupables = new List<PickupableObject>(); // 附近可捡起的物品
+    public InteractableObject currentInteractTarget;
+    public int currentSelectedSlot = -1;
 
-    private Camera playerCamera;
+    // 触发器区域相关
+    private List<InteractableObject> objectsInRange = new List<InteractableObject>();
+    private CapsuleCollider interactionTrigger;
+
+
+
+    private float empowerHoldTimer = 0f;
+    private bool isHoldingEmpower = false;
+
 
     void Start()
     {
-        playerCamera = Camera.main;
-
-        if (controller == null) controller = GetComponent<CharacterController>();
+        //if (controller == null) controller = GetComponent<CharacterController>();
         if (mouseLook == null) mouseLook = GetComponentInChildren<MouseLook>();
         if (movement == null) movement = GetComponent<PlayerMovement>();
         if (empowermentAbility == null) empowermentAbility = GetComponent<EmpowermentAbility>();
+        if (playerCamera == null) playerCamera = Camera.main;
+
+        // 创建交互触发器
+        CreateInteractionTrigger();
 
         Cursor.lockState = CursorLockMode.Locked;
 
     }
 
+    void CreateInteractionTrigger()
+    {
+        // 添加球形触发器
+        interactionTrigger = gameObject.AddComponent<CapsuleCollider>();
+        interactionTrigger.isTrigger = true;
+        interactionTrigger.radius = interactRange;
+
+        // 调整触发器位置（如果需要）
+        // interactionTrigger.center = new Vector3(0, 1, 0); // 根据角色高度调整
+
+        Debug.Log($"创建交互触发器，半径: {interactRange}");
+    }
+
 
     void Update()
     {
-        HandleInteraction();
-        HandleDropItem();
-        HandleEmpowerment();
-    }
-    void HandleInteraction()
-    {
-        if (Input.GetKeyDown(KeyCode.E))
+
+        UpdateCurrentInteractTarget();
+
+        HandleEmpowerInput(); //长按E-理解特性， 短按E-赋予特性
+        HandlePropertySwitch(); //数字键盘切换特性
+        HandleInteraction(); //短按E普通交互 （使用当前特性）
+
+        //Game loop 相关
+        /* 用ui
+        HandleRestart(); // R
+        HandleExit(); // ESC
+        */
+
+        // 调试信息
+        if (Time.frameCount % 120 == 0)
         {
-            if (heldObject != null)
+            Debug.Log($"范围内物体数量: {objectsInRange.Count}, 当前目标: {(currentInteractTarget != null ? currentInteractTarget.name : "无")}");
+        }
+    }
+
+    void HandleEmpowerInput()
+    {
+        if (Input.GetKey(KeyCode.E))
+        {
+            empowerHoldTimer += Time.deltaTime;
+
+            //显示长按进度？
+            if (!isHoldingEmpower && empowerHoldTimer >= 0.5f)
             {
-                Debug.Log("已有手持物品， 尝试使用物品交互");
-                return;
+                Debug.Log("长按E理解特质中...");
             }
-            
-            //捡起最近的物品
-            if(nearbyPickupables.Count > 0)
+
+            //长按完成
+            if (empowerHoldTimer >= empowerHoldDuration && !isHoldingEmpower)
             {
-                PickupableObject closet = GetClosestPickupable();
-                if(closet != null)
+                StartUnderstanding();
+                isHoldingEmpower = true;
+            }
+        }
+
+        if (Input.GetKeyUp(KeyCode.E))
+        {
+            //短按E： 使用当前特性进行普通交互
+            if (empowerHoldTimer < empowerHoldDuration && !isHoldingEmpower)
+            {
+                HandleShortPressE();
+            }
+
+            empowerHoldTimer = 0f;
+            isHoldingEmpower = false;
+        }
+    }
+
+    void StartUnderstanding()
+    {
+        UpdateCurrentInteractTarget();
+
+        if (currentInteractTarget == null)
+        {
+            Debug.Log("没有可理解的目标");
+            return;
+        }
+
+        List<ObjectProperty> understandableProperties = currentInteractTarget.GetUnderstandableProperties();
+
+        if (understandableProperties.Count == 0)
+        {
+            Debug.Log($"{currentInteractTarget.name} 没有可理解的特性");
+            return;
+        }
+
+        //如果有多个特性，进入选择 让玩家选择理解哪个特性
+        if (understandableProperties.Count > 1)
+        {
+            Debug.Log($"选择要理解的特性:");
+            for (int i = 0; i < understandableProperties.Count; i++)
+            {
+                Debug.Log($"[{i + 1}] {understandableProperties[i]}");
+            }
+            // 处理特性选择
+            StartCoroutine(HandleMultiplePropertySelection(understandableProperties));
+        }
+        else
+        {
+            // 只有一个特性，直接理解
+            empowermentAbility.UnderstandProperty(currentInteractTarget, 0);
+        }
+    }
+
+    //有多个特性可理解，让玩家选择
+    private IEnumerator HandleMultiplePropertySelection(List<ObjectProperty> properties)
+    {
+        bool propertySelected = false;
+        int selectedIndex = -1;
+
+        while (!propertySelected)
+        {
+            for (int i = 0; i < properties.Count; i++)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1 + i))
                 {
-                    PickupItem(closet);
+                    selectedIndex = i;
+                    propertySelected = true;
+                    break;
                 }
             }
-            else
+
+            if (Input.GetKeyDown(KeyCode.Escape))
             {
-                Debug.Log("附近没有可捡起的物品");
+                Debug.Log("取消特性理解");
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        if (selectedIndex != -1)
+        {
+            empowermentAbility.UnderstandProperty(currentInteractTarget, selectedIndex);
+        }
+    }
+
+    void HandleShortPressE()
+    {
+        UpdateCurrentInteractTarget();
+
+        if (currentInteractTarget == null)
+        {
+            Debug.Log("没有可交互的目标");
+            return;
+        }
+
+        if (currentSelectedSlot == -1)
+        {
+            // 未选择特性：基础交互
+            //currentInteractTarget.OnInteract();
+        }
+        else
+        {
+            // 使用当前选择的特性
+            bool success = empowermentAbility.ApplyProperty(currentInteractTarget, currentSelectedSlot);
+            if (!success)
+            {
+                Debug.Log("特性使用失败");
             }
         }
     }
 
-    void HandleDropItem()
+    void HandlePropertySwitch()
     {
-        if (Input.GetKeyDown(KeyCode.Q) && heldObject != null)
-        {
-            heldObject.OnDrop();
-            heldObject = null;
-            Debug.Log("已丢弃物品");
-        }
-    }
-
-    void HandleEmpowerment()
-    {
-        // 数字键1、2快速使用背包格中的特性
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-            TryApplyPropertyToHeldObject(0);
+            SwitchToSlot(0);
         }
         if (Input.GetKeyDown(KeyCode.Alpha2))
         {
-            TryApplyPropertyToHeldObject(1);
+            SwitchToSlot(1);
         }
+        if (Input.GetKeyDown(KeyCode.Alpha0))
+        {
+            SwitchToSlot(-1);
+        }
+    }
+
+    void SwitchToSlot(int slotIndex)
+    {
+        currentSelectedSlot = slotIndex;
+
+        if (slotIndex == -1)
+        {
+            Debug.Log("切换到空手状态");
+        }
+        else
+        {
+            ObjectProperty property = empowermentAbility.GetProperty(slotIndex);
+            if (property == ObjectProperty.None)
+            {
+                Debug.Log($"背包格{slotIndex + 1}为空");
+                currentSelectedSlot = -1;
+            }
+            else
+            {
+                Debug.Log($"切换到特性: {property}");
+            }
+        }
+    }
+
+    void HandleInteraction()
+    {
+        // 这里可以添加其他交互键的处理
+        // 比如F键的特殊交互等
+    }
+
+    /// <summary>
+    /// 更新当前交互目标（射线检测）
+    /// </summary>
+    void UpdateCurrentInteractTarget()
+    {
+        InteractableObject bestTarget = null;
+        float bestScore = 0f;
+
+        objectsInRange.RemoveAll(item => item == null);
+
+        foreach (InteractableObject interactable in objectsInRange)
+        {
+            float score = CalculateViewScore(interactable);
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestTarget = interactable;
+            }
+        }
+
+        if (bestScore > 0.3f && bestTarget != null)
+        {
+            //发现新目标
+            if (currentInteractTarget != bestTarget)
+            {
+                if (currentInteractTarget != null)
+                {
+                    Debug.Log($"目标切换: {currentInteractTarget.name} -> {bestTarget.name}");
+                    currentInteractTarget.OnLoseFocus();
+                }
+                currentInteractTarget = bestTarget;
+                currentInteractTarget.OnFocus();
+                Debug.Log($"选中目标: {bestTarget.name}, 视角分数: {bestScore:F2}");
+            }
+        }
+        else
+        {
+            // 没有合适的目标
+            if (currentInteractTarget != null)
+            {
+                Debug.Log($"无合适目标，清除: {currentInteractTarget.name}");
+                currentInteractTarget.OnLoseFocus();
+                currentInteractTarget = null;
+            }
+        }
+    }
+
+    float CalculateViewScore(InteractableObject interactable)
+    {
+        if (interactable == null) return 0f;
+
+        Vector3 playerForward = playerCamera.transform.forward;
+        Vector3 toTarget = (interactable.transform.position - playerCamera.transform.position).normalized;
+
+        // 计算视角方向的点积（1.0表示正前方，0.0表示侧面，-1.0表示后方）
+        float viewScore = Vector3.Dot(playerForward, toTarget);
+
+        return viewScore;
     }
     
-  void TryApplyPropertyToHeldObject(int slotIndex)
-    {
-        if (heldObject != null)
-        {
-            bool success = empowermentAbility.ApplyProperty(heldObject, slotIndex);
-            if (success)
-            {
-                Debug.Log($"已对手持物品赋予特性");
-            }
-        }
-    }
-    public void PickupItem(PickupableObject item)
-    {
-        if (heldObject != null)
-        {
-            heldObject.OnDrop(); // 如果已经拿着东西，先扔掉
-        }
-
-        heldObject = item;
-        item.OnPickup(holdPosition);
-
-        //从附近列表中移除，因为已经被捡起了
-        nearbyPickupables.Remove(item);
-
-        // 自动抽取特性到第一个可用背包格
-        if (item.inherentProperty != ObjectProperty.None)
-        {
-            int freeSlot = FindFreeSlot();
-            if (freeSlot != -1)
-            {
-                empowermentAbility.ExtractProperty(item.inherentProperty, freeSlot);
-                Debug.Log($"已抽取特性 [{item.inherentProperty}] 到背包格 {freeSlot}");
-            }
-        }
-    }
-
-    private int FindFreeSlot()
-    {
-        for (int i = 0; i < empowermentAbility.propertySlots.Length; i++)
-        {
-            if (empowermentAbility.propertySlots[i] == ObjectProperty.None)
-                return i;
-        }
-        return 0; // 如果没有空格，就覆盖第一个
-    }
-
-    PickupableObject GetClosestPickupable()
-    {
-        if (nearbyPickupables.Count == 0) return null;
-
-        PickupableObject closest = null;
-        float closestDistance = float.MaxValue;
-
-        foreach (PickupableObject pickupable in nearbyPickupables)
-        {
-            if (pickupable == null) continue;
-
-            float distance = Vector3.Distance(transform.position, pickupable.transform.position);
-            if (distance < closestDistance)
-            {
-                closestDistance = distance;
-                closest = pickupable;
-            }
-        }
-
-        return closest;
-    }
-
+    // 触发器事件 - 物体进入范围
     void OnTriggerEnter(Collider other)
     {
-        PickupableObject pickupable = other.GetComponent<PickupableObject>();
-        if (pickupable != null && !nearbyPickupables.Contains(pickupable))
+        InteractableObject interactable = other.GetComponent<InteractableObject>();
+        if (interactable != null && !objectsInRange.Contains(interactable))
         {
-            nearbyPickupables.Add(pickupable);
-            Debug.Log($"进入捡起范围： {pickupable.gameObject.name}");
+            objectsInRange.Add(interactable);
+            Debug.Log($"进入交互范围: {interactable.name}");
         }
     }
 
+// 触发器事件 - 物体离开范围
     void OnTriggerExit(Collider other)
     {
-        PickupableObject pickupable = other.GetComponent<PickupableObject>();
-        if(pickupable != null && nearbyPickupables.Contains(pickupable))
+        InteractableObject interactable = other.GetComponent<InteractableObject>();
+        if (interactable != null && objectsInRange.Contains(interactable))
         {
-            nearbyPickupables.Remove(pickupable);
-            Debug.Log($"离开捡起范围： {pickupable.gameObject.name}");
+            objectsInRange.Remove(interactable);
+            Debug.Log($"离开交互范围: {interactable.name}");
+
+            // 如果离开的是当前目标，清除它
+            if (currentInteractTarget == interactable)
+            {
+                currentInteractTarget.OnLoseFocus();
+                currentInteractTarget = null;
+                Debug.Log($"当前目标离开范围，已清除");
+            }
         }
     }
+
+
+    /// <summary>
+    /// 调试绘制
+    /// </summary>
+    void OnDrawGizmosSelected()
+    {
+        if (playerCamera != null)
+        {
+            // 绘制交互射线
+            Gizmos.color = Color.blue;
+            Vector3 rayOrigin = playerCamera.transform.position;
+            Vector3 rayDirection = playerCamera.transform.forward * interactRange;
+            Gizmos.DrawRay(rayOrigin, rayDirection);
+        }
+    }
+
 }
