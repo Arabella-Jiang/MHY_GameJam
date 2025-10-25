@@ -19,7 +19,7 @@ public class InteractableObject : MonoBehaviour
     public class PropertyCombination
     {
         public List<ObjectProperty> requiredProperties;
-        public UnityEvent onCombinationTriggered;         // 触发的效果
+        public string effectComponentName;         // 触发的效果
     }
 
     //private bool isFocus = false;
@@ -66,8 +66,16 @@ public class InteractableObject : MonoBehaviour
         {
             if (HasAllProperties(combination.requiredProperties))
             {
-                combination.onCombinationTriggered?.Invoke();
-                Debug.Log($"触发特性组合效果: {string.Join(" + ", combination.requiredProperties)}");
+                CombinationEffect effect = GetComponent(combination.effectComponentName) as CombinationEffect;
+                if(effect != null)
+                {
+                    effect.TriggerEffect();
+                    Debug.Log($"触发特性组合效果: {string.Join(" + ", combination.requiredProperties)}");
+                } else
+                {
+                    Debug.LogWarning($"找不到组合效果组件: {combination.effectComponentName}");
+                }
+               
             }
         }
     }

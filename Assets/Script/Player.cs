@@ -53,7 +53,9 @@ public class Player : MonoBehaviour
         // 添加球形触发器
         interactionTrigger = gameObject.AddComponent<CapsuleCollider>();
         interactionTrigger.isTrigger = true;
-        interactionTrigger.radius = interactRange;
+        interactionTrigger.radius = interactRange * 1.5f;
+        interactionTrigger.height = 3f;
+        interactionTrigger.center = new Vector3(0, 1.5f, 0);
 
         // 调整触发器位置（如果需要）
         // interactionTrigger.center = new Vector3(0, 1, 0); // 根据角色高度调整
@@ -188,7 +190,7 @@ public class Player : MonoBehaviour
 
     void HandleShortPressE()
     {
-        UpdateCurrentInteractTarget();
+        //UpdateCurrentInteractTarget();
 
         if (currentInteractTarget == null)
         {
@@ -298,7 +300,7 @@ public class Player : MonoBehaviour
             // 没有合适的目标
             if (currentInteractTarget != null)
             {
-                Debug.Log($"无合适目标，清除: {currentInteractTarget.name}");
+                Debug.Log($"清除目标原因 - 最佳分数: {bestScore:F2}, 最佳目标: {(bestTarget != null ? bestTarget.name : "null")}, 当前目标: {currentInteractTarget.name}");
                 currentInteractTarget.OnLoseFocus();
                 currentInteractTarget = null;
             }
@@ -317,7 +319,7 @@ public class Player : MonoBehaviour
 
         return viewScore;
     }
-    
+
     // 触发器事件 - 物体进入范围
     void OnTriggerEnter(Collider other)
     {
@@ -329,7 +331,7 @@ public class Player : MonoBehaviour
         }
     }
 
-// 触发器事件 - 物体离开范围
+    // 触发器事件 - 物体离开范围
     void OnTriggerExit(Collider other)
     {
         InteractableObject interactable = other.GetComponent<InteractableObject>();

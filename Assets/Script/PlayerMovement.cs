@@ -13,6 +13,7 @@ public class PlayerMovement : MonoBehaviour
     private bool isGrounded;
     private float gravityValue = -9.81f;
 
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
