@@ -12,6 +12,7 @@ public class Player : MonoBehaviour
     public PlayerMovement movement;
     public EmpowermentAbility empowermentAbility;
     public Camera playerCamera;
+    public PlayerHoldItem playerHoldItem;
     //public Transform holdPosition; //手持道具的位置
 
     [Header("交互设置")]
@@ -40,6 +41,7 @@ public class Player : MonoBehaviour
         if (movement == null) movement = GetComponent<PlayerMovement>();
         if (empowermentAbility == null) empowermentAbility = GetComponent<EmpowermentAbility>();
         if (playerCamera == null) playerCamera = Camera.main;
+        if (playerHoldItem == null) playerHoldItem = GetComponent<PlayerHoldItem>();
 
         // 创建交互触发器
         CreateInteractionTrigger();
@@ -73,6 +75,8 @@ public class Player : MonoBehaviour
         HandlePropertySwitch(); //数字键盘切换特性
         HandleInteraction(); //短按E普通交互 （使用当前特性）
 
+        HandleItemPickupDrop();      // F键捡起/放下物品
+
         //Game loop 相关
         /* 用ui
         HandleRestart(); // R
@@ -80,9 +84,37 @@ public class Player : MonoBehaviour
         */
 
         // 调试信息
+        /*
         if (Time.frameCount % 120 == 0)
         {
             Debug.Log($"范围内物体数量: {objectsInRange.Count}, 当前目标: {(currentInteractTarget != null ? currentInteractTarget.name : "无")}");
+        }
+        */
+    }
+
+    void HandleItemPickupDrop()
+    {
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            if (playerHoldItem.heldObject == null)
+            {
+                // 尝试捡起当前目标
+                if (currentInteractTarget != null)
+                {
+                    bool success = playerHoldItem.PickupItem(currentInteractTarget.gameObject);
+                    if (success)
+                    {
+                        // 捡起成功后从交互列表中移除
+                        objectsInRange.Remove(currentInteractTarget);
+                        currentInteractTarget = null;
+                    }
+                }
+            }
+            else
+            {
+                // 放下手中物品
+                playerHoldItem.DropItem();
+            }
         }
     }
 

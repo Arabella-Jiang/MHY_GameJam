@@ -15,6 +15,9 @@ public class InteractableObject : MonoBehaviour
     [Header("特性组合效果")]
     public PropertyCombination[] propertyCombinations;
 
+    [Header("可捡起设置")]
+    public bool canBePickedUp = true;
+
     [System.Serializable]
     public class PropertyCombination
     {
@@ -96,12 +99,12 @@ public class InteractableObject : MonoBehaviour
     {
         // 简单的高亮效果
         // 比如：改变材质颜色、显示轮廓、显示UI提示等
-        Debug.Log($"{name} 被聚焦");
+        //Debug.Log($"{name} 被聚焦");
     }
 
     public void OnLoseFocus()
     {
         // 恢复原状
-        Debug.Log($"{name} 失去聚焦");
+        //Debug.Log($"{name} 失去聚焦");
     }
 }
