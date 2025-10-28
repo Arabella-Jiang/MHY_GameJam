@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
-using System.IO.Compression;
+
 //using UnityEngine.UIElements;
 
 public class Player : MonoBehaviour
@@ -40,7 +40,6 @@ public class Player : MonoBehaviour
         if (mouseLook == null) mouseLook = GetComponentInChildren<MouseLook>();
         if (movement == null) movement = GetComponent<PlayerMovement>();
         if (empowermentAbility == null) empowermentAbility = GetComponent<EmpowermentAbility>();
-        if (playerCamera == null) playerCamera = Camera.main;
         if (playerHoldItem == null) playerHoldItem = GetComponent<PlayerHoldItem>();
 
         // 创建交互触发器

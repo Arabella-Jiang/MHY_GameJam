@@ -12,42 +12,72 @@ public class WaterHardEffect : CombinationEffect
     public string blockMessage = "水流太急，试试其他办法吧";
     public string successMessage = "水变得坚硬了，可以通过这里";
 
-    [Header("空气墙")]
-    public GameObject airWall;
-
     [Header("河流碰撞体")]
-    public Collider riverCollider;
+    public Collider riverBoxCollider;
+    public Collider riverPlaneBoxCollider;
 
-    //[Header("阻挡设置")]
-    //public float pushBackForce = 2f; // 减小推回力度
-    //private bool playerIsNear = false;
+    [Header("水效果控制")]
+    public Renderer waterRenderer;
+    public Material hardenedWaterMaterial; // 硬化后的材质
 
+    private bool hasShownBlockMessage = false;
+    private bool effectTriggered = false; // 防止重复触发
 
     public override void TriggerEffect()
     {
-        canPass = true;
+        if (effectTriggered) return; // 防止重复触发
 
-        // 禁用空气墙
-        if (airWall != null)
-        {
-            airWall.SetActive(false);
-            Debug.Log("禁用空气墙，现在可以通过了");
-        }
+        canPass = true;
+        effectTriggered = true;
 
         // 禁用碰撞体 防止mesh collider bug
-        if (riverCollider != null)
+        if (riverBoxCollider != null)
         {
-            riverCollider.enabled = false;
+            riverBoxCollider.enabled = false;
             Debug.Log("禁用河流碰撞体，允许通行");
         }
 
-        Renderer renderer = GetComponent<Renderer>();
-        if (renderer != null)
+        if(riverPlaneBoxCollider != null)
         {
-            renderer.material.color = new Color(0.7f, 0.9f, 1f, 0.8f); // 冰蓝色
+            riverPlaneBoxCollider.enabled = true;
         }
 
+        // 替换材质
+        ReplaceWaterMaterial();
+
         Debug.Log($"✅ {successMessage}");
+    }
+    
+    private void ReplaceWaterMaterial()
+    {
+        if (waterRenderer != null && hardenedWaterMaterial != null)
+        {
+            waterRenderer.material = hardenedWaterMaterial;
+            Debug.Log("水材质已替换为硬化版本");
+        }
+        else
+        {
+            Debug.LogError("无法替换材质：渲染器或硬化材质为空");
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        // 检查是否是玩家且当前不能通行
+        if (other.CompareTag(playerTag) && !canPass && !hasShownBlockMessage)
+        {
+            Debug.Log($"✅ {blockMessage}");
+            hasShownBlockMessage = true;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        // 玩家离开区域时重置标记
+        if (other.CompareTag(playerTag))
+        {
+            hasShownBlockMessage = false;
+        }
     }
 
 }
