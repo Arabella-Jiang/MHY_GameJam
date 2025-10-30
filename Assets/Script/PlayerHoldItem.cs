@@ -25,6 +25,12 @@ public class PlayerHoldItem : MonoBehaviour
             return false;
         }
 
+        if (!interactable.canBePickedUp)
+        {
+            Debug.Log($"{item.name} 标记为不可拾取");
+            return false;
+        }
+
         if (item == null)
         {
             Debug.LogError("尝试拾取空物体");
