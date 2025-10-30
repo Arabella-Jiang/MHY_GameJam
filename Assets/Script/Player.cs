@@ -99,6 +99,12 @@ public class Player : MonoBehaviour
                 // 尝试捡起当前目标
                 if (currentInteractTarget != null)
                 {
+                    if (!currentInteractTarget.canBePickedUp)
+                    {
+                        Debug.Log($"{currentInteractTarget.name} 不可拾取");
+                        return;
+                    }
+
                     bool success = playerHoldItem.PickupItem(currentInteractTarget.gameObject);
                     if (success)
                     {
