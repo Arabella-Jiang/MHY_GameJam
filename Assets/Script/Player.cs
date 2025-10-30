@@ -61,7 +61,6 @@ public class Player : MonoBehaviour
         // 调整触发器位置（如果需要）
         // interactionTrigger.center = new Vector3(0, 1, 0); // 根据角色高度调整
 
-        Debug.Log($"创建交互触发器，半径: {interactRange}");
     }
 
 
@@ -126,7 +125,7 @@ public class Player : MonoBehaviour
             //显示长按进度？
             if (!isHoldingEmpower && empowerHoldTimer >= 0.5f)
             {
-                Debug.Log("长按E理解特质中...");
+                //Debug.Log("长按E理解特质中...");
             }
 
             //长按完成
@@ -231,8 +230,15 @@ public class Player : MonoBehaviour
 
         if (currentSelectedSlot == -1)
         {
-            // 未选择特性：基础交互
-            //currentInteractTarget.OnInteract();
+            // 未选择特性：基础交互（用于触发树枝摩擦点火等）
+            var ignitionComponent = currentInteractTarget.GetComponent("BranchIgnition");
+            if (ignitionComponent != null)
+            {
+                // 使用消息调用，避免直接依赖类型
+                currentInteractTarget.gameObject.SendMessage("TryIgnite", SendMessageOptions.DontRequireReceiver);
+                return;
+            }
+            // 其他基础交互可在此扩展
         }
         else
         {
@@ -318,12 +324,12 @@ public class Player : MonoBehaviour
             {
                 if (currentInteractTarget != null)
                 {
-                    Debug.Log($"目标切换: {currentInteractTarget.name} -> {bestTarget.name}");
+                    //Debug.Log($"目标切换: {currentInteractTarget.name} -> {bestTarget.name}");
                     currentInteractTarget.OnLoseFocus();
                 }
                 currentInteractTarget = bestTarget;
                 currentInteractTarget.OnFocus();
-                Debug.Log($"选中目标: {bestTarget.name}, 视角分数: {bestScore:F2}");
+                //Debug.Log($"选中目标: {bestTarget.name}, 视角分数: {bestScore:F2}");
             }
         }
         else
@@ -331,7 +337,7 @@ public class Player : MonoBehaviour
             // 没有合适的目标
             if (currentInteractTarget != null)
             {
-                Debug.Log($"清除目标原因 - 最佳分数: {bestScore:F2}, 最佳目标: {(bestTarget != null ? bestTarget.name : "null")}, 当前目标: {currentInteractTarget.name}");
+                //Debug.Log($"清除目标原因 - 最佳分数: {bestScore:F2}, 最佳目标: {(bestTarget != null ? bestTarget.name : "null")}, 当前目标: {currentInteractTarget.name}");
                 currentInteractTarget.OnLoseFocus();
                 currentInteractTarget = null;
             }
@@ -358,7 +364,7 @@ public class Player : MonoBehaviour
         if (interactable != null && !objectsInRange.Contains(interactable))
         {
             objectsInRange.Add(interactable);
-            Debug.Log($"进入交互范围: {interactable.name}");
+            //Debug.Log($"进入交互范围: {interactable.name}");
         }
     }
 
@@ -369,14 +375,14 @@ public class Player : MonoBehaviour
         if (interactable != null && objectsInRange.Contains(interactable))
         {
             objectsInRange.Remove(interactable);
-            Debug.Log($"离开交互范围: {interactable.name}");
+            //Debug.Log($"离开交互范围: {interactable.name}");
 
             // 如果离开的是当前目标，清除它
             if (currentInteractTarget == interactable)
             {
                 currentInteractTarget.OnLoseFocus();
                 currentInteractTarget = null;
-                Debug.Log($"当前目标离开范围，已清除");
+                //Debug.Log($"当前目标离开范围，已清除");
             }
         }
     }
